@@ -16,6 +16,7 @@ def vecof(lines,a,wtol,kk):#cal lsa topic-vec of terms
         vec = vec + a[:,wtol[line]]
     return vec
 
+
 def vecof2(lines,idf,a,wtol,kk):#cal lsa topic-vec of weighted(tfidf) terms
     vec = np.zeros(kk)
     for line in lines:
@@ -24,6 +25,14 @@ def vecof2(lines,idf,a,wtol,kk):#cal lsa topic-vec of weighted(tfidf) terms
         if line[1] in wtol:
             vec = vec + a[:,wtol[line[1]]] * idf[line[1]] * int(line[0])
     return vec/np.linalg.norm(vec)
+
+def vecof3(lines,a,s,wtol,kk):#cal domain class of terms using lda
+    vec = 1
+    for line in lines:
+        line = line.strip('\n')
+        vec = vec * a[:,wtol[line]] * 62300
+    vec = vec * s * 100000
+    return vec
 
 def readwl(wlpath):#read word-lsanum matrix
     fwl = open(wlpath,"r")
@@ -81,11 +90,19 @@ def readcll2(cllfile):
 
 
 
-def classof(lines,a,wtol,kk):#cal domain class of terms
+def classof(lines,a,wtol,kk):#cal domain class of terms using lsa
     vec = np.zeros(kk)
     for line in lines:
         line = line.strip('\n')
         vec = vec + a[:,wtol[line]]
+    return vec.argmax()
+
+def classof2(lines,a,s,wtol,kk):#cal domain class of terms using lda
+    vec = 1
+    for line in lines:
+        line = line.strip('\n')
+        vec = vec * a[:,wtol[line]]
+    vec = vec * s
     return vec.argmax()
 
 def dg(root,name,cll,clpath,zipf,a,wtol,kk):#gen dummy query
@@ -198,3 +215,52 @@ def dg2(filename,cll,clpath,zipf,type):
     result.append(list(qtem))
     result.append(t)
     return result
+
+def dg3(root,name,cll,clpath,zipf,a,s,wtol,kk):#gen dummy query using lda
+    filename = root + '/' + name
+    w = []
+    fin  = open(filename+'.txt','r')
+    lines = fin.readlines()
+    fin.close()
+    cl = classof2(lines,a,s,wtol,kk)
+    fcl = open(clpath+'/'+str(cl))
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+        if line in tmp[0:10000]:
+            w.append(tmp.index(line))
+    #rq = np.array(w)
+    #mean = rq.mean()
+    #std = rq.std()
+    #print mean,std
+    if cl not in cll:
+        return None
+    ttmmpp = list(tmp)
+    del tmp
+    result = []
+    for tcl in cll[cl]:
+        fcl = open(clpath+'/'+str(tcl))
+        tmp = fcl.readlines()    
+        fcl.close()
+        rr =  set()
+        q = []
+        #qlen = abs(len(w)+np.random.normal(0,2,1))
+        qlen = len(w)
+        while len(rr) < qlen:
+            dp = int(np.random.zipf(zipf,1))
+            if dp < len(tmp) and dp not in rr:
+                rr.add(dp)
+                q.append(tmp[int(dp)].strip('\n'))
+            else:
+                continue
+        result.append(q)
+    q = []
+    t = '!'
+    for i in w:
+        tw = ttmmpp[i].strip('\n')
+        q.append(tw)
+        t = t + tw + ' '
+    result.append(q)
+    result.append(t)
+    return result
+
