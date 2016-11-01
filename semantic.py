@@ -7,7 +7,7 @@ import math
 import re
 import numpy as np
 
-classname = '/home/ec2-user/git/tfidf/result/classname.txt'
+classname = '/home/ec2-user/git/tfidf/result/classname.txt'#literate classname
 
 def vecof(lines,a,wtol,kk):#cal lsa topic-vec of terms
     vec = np.zeros(kk)
@@ -154,29 +154,34 @@ def dg(root,name,cll,clpath,zipf,a,wtol,kk):#gen dummy query
     return result
 
 
-def dg2(filename,cll,clpath,zipf,type):
-    fin = open(filename,'r')
-    temp = fin.read()
-    fin.close()
-    cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
-    if(len(cl) < 1):
-	print 'cl<1:',filename
-        return None
-    cl = cl[0]
-    cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
-    w = []
+def dg2(filename,cll,clpath,a = None,s = None,zipf = 1.03,type = 0):#dummpy query generation using tfidf
     fin  = open(filename+'.txt','r')
-    clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-    if type == 2:
-	clf = clf + '2'
-    fcl = open(clf,'r')
+    lines = fin.readlines()
+    fin.close()
+    if type == 0 or type == 1:#tfidf
+        fin = open(filename,'r')
+        temp = fin.read()
+        fin.close()
+        cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
+        if(len(cl) < 1):
+            print 'cl<1:',filename
+            return None
+        cl = cl[0]
+        cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
+	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
+	if type == 1:#tfidf2
+	    clf = clf + '2'
+    elif type == 2 or type == 3:#lsa,lda
+        cl = classof(lines,a,wtol,kk)
+	clf = clpath+'/'+str(cl)
 
+    w = []
+    fcl = open(clf,'r')
     tmp = fcl.readlines()
     fcl.close()
-    for line in fin:
+    for line in lines:
 	if line in tmp[0:10000]:
 	    w.append(tmp.index(line))
-    fin.close()
     r = []
     t = '!'
     result = []
@@ -198,15 +203,20 @@ def dg2(filename,cll,clpath,zipf,type):
 
 	rr =  set()
         qtem = []
-	#qlen = abs(len(w)+np.random.normal(0,2,1))
+	#qlen = abs(len(w)+np.random.normal(0,2,1)) #random querry length
 	qlen = len(w)
-	while len(rr) < qlen:
-	    dp = int(np.random.zipf(zipf,1))
-	    if dp < len(tmp) and dp not in rr:
-		rr.add(dp)
-		qtem.append(tmp[int(dp)].strip('\n'))
-	    else:
-		continue
+        if zipf <= 1:
+            for i in w:
+		if i < len(tmp):
+		    qtem.append(tmp[i].strip('\n'))
+	else:
+	    while len(rr) < qlen:
+		dp = int(np.random.zipf(zipf,1))
+		if dp < len(tmp) and dp not in rr:
+		    rr.add(dp)
+		    qtem.append(tmp[int(dp)].strip('\n'))
+		else:
+		    continue
         result.append(list(qtem))
     for i in w:
 	tw = ttmmpp[i].strip('\n')
