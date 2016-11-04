@@ -9,14 +9,6 @@ import numpy as np
 
 classname = '/home/ec2-user/git/tfidf/result/classname.txt'#literate classname
 
-
-def vecof0(lines,a,s,wtol,kk):
-    if s == None:
-        return vecof(lines,a,wtol,kk)
-    else:
-        return vecof3(lines,a,s,wtol,kk)
-
-
 def vecof(lines,a,wtol,kk):#cal lsa topic-vec of terms
     vec = np.zeros(kk)
     for line in lines:
@@ -113,10 +105,57 @@ def classof2(lines,a,s,wtol,kk):#cal domain class of terms using lda
     vec = vec * s
     return vec.argmax()
 
-def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,type = 0):
+def dg(root,name,cll,clpath,zipf,a,wtol,kk):#gen dummy query
+    filename = root + '/' + name
+    w = []
+    fin  = open(filename+'.txt','r')
+    lines = fin.readlines()
+    fin.close()
+    cl = classof(lines,a,wtol,kk)
+    fcl = open(clpath+'/'+str(cl))
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+        if line in tmp[0:10000]:
+            w.append(tmp.index(line))
+    rq = np.array(w)
+    mean = rq.mean()
+    std = rq.std()
+    #print mean,std
+    if cl not in cll:
+        return None
+    ttmmpp = list(tmp)
+    del tmp
+    result = []
+    for tcl in cll[cl]:
+        fcl = open(clpath+'/'+str(tcl))
+        tmp = fcl.readlines()    
+        fcl.close()
+        rr =  set()
+        q = []
+        #qlen = abs(len(w)+np.random.normal(0,2,1))
+        qlen = len(w)
+        while len(rr) < qlen:
+            dp = int(np.random.zipf(zipf,1))
+            if dp < len(tmp) and dp not in rr:
+                rr.add(dp)
+                q.append(tmp[int(dp)].strip('\n'))
+            else:
+                continue
+        result.append(q)
+    q = []
+    t = '!'
+    for i in w:
+        tw = ttmmpp[i].strip('\n')
+        q.append(tw)
+        t = t + tw + ' '
+    result.append(q)
+    result.append(t)
+    return result
+
+
+def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,type = 0):
 #dummpy query generation using tfidf
-#type:0 tfidf/1 tfidf2/2 lsa/3 lda
-#s for lda only
     fin  = open(filename+'.txt','r')
     lines = fin.readlines()
     fin.close()
@@ -191,3 +230,52 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
     result.append(list(qtem))
     result.append(t)
     return result
+
+def dg3(root,name,cll,clpath,zipf,a,s,wtol,kk):#gen dummy query using lda
+    filename = root + '/' + name
+    w = []
+    fin  = open(filename+'.txt','r')
+    lines = fin.readlines()
+    fin.close()
+    cl = classof2(lines,a,s,wtol,kk)
+    fcl = open(clpath+'/'+str(cl))
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+        if line in tmp[0:10000]:
+            w.append(tmp.index(line))
+    #rq = np.array(w)
+    #mean = rq.mean()
+    #std = rq.std()
+    #print mean,std
+    if cl not in cll:
+        return None
+    ttmmpp = list(tmp)
+    del tmp
+    result = []
+    for tcl in cll[cl]:
+        fcl = open(clpath+'/'+str(tcl))
+        tmp = fcl.readlines()    
+        fcl.close()
+        rr =  set()
+        q = []
+        #qlen = abs(len(w)+np.random.normal(0,2,1))
+        qlen = len(w)
+        while len(rr) < qlen:
+            dp = int(np.random.zipf(zipf,1))
+            if dp < len(tmp) and dp not in rr:
+                rr.add(dp)
+                q.append(tmp[int(dp)].strip('\n'))
+            else:
+                continue
+        result.append(q)
+    q = []
+    t = '!'
+    for i in w:
+        tw = ttmmpp[i].strip('\n')
+        q.append(tw)
+        t = t + tw + ' '
+    result.append(q)
+    result.append(t)
+    return result
+
