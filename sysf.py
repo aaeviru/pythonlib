@@ -1,6 +1,6 @@
 import sys
 import os
-from time import gmtime, strftime
+from datetime import datetime, timedelta
 
 def logger(outf,inputform):
     if outf[0:6] == 'stdout':
@@ -14,9 +14,11 @@ def logger(outf,inputform):
     flog = open(outf+'.log', 'w',0)
     sys.stdout = flog
     sys.stderr = flog
+    
 
+    current_time_in_utc = datetime.utcnow()
+    print current_time_in_utc + timedelta(hours=9)
     inputform = inputform.split(',')
-    print strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
     for i in range(1,len(sys.argv)):
 	print inputform[i-1]+':'+sys.argv[i]
     print

@@ -5,21 +5,10 @@ import os
 import sys
 import math
 import re
-import random
 import numpy as np
 from scipy import spatial
-import crand
 
 classname = '/home/ec2-user/git/tfidf/result/classname.txt'#literate classname
-#fldawl = open('/home/ec2-user/git/statresult/wordslist_top10000_dsw.txt','r')#wordlist for lda
-#i = 0
-#ltow = {}
-#for line in fldawl:
-#    line = line.strip('\n')
-#    ltow[i] = line
-#    i = i + 1
-#fldawl.close()
-
 alpha = 0.1 #parameter for rd
 
 def vecof0(lines,a,s,wtol,kk):
@@ -46,7 +35,7 @@ def vecof2(lines,idf,a,wtol,kk):#cal lsa topic-vec of weighted(tfidf) terms
             vec = vec + a[:,wtol[line[1]]] * idf[line[1]] * int(line[0])
     return vec/np.linalg.norm(vec)
 
-def vecof3(lines,a,s,wtol,kk):#cal lda topic-vec of weighted(tfidf) terms
+def vecof3(lines,a,s,wtol,kk):#cal domain class of terms using lda
     vec = 1
     for line in lines:
         line = line.strip('\n')
@@ -117,8 +106,6 @@ def classof0(lines,a,s,wtol,kk):
         return classof2(lines,a,s,wtol,kk)
 
 def classof(lines,a,wtol,kk):#cal domain class of terms using lsa
-    if len(lines) < 1:
-        return -1
     vec = np.zeros(kk)
     for line in lines:
         line = line.strip('\n')
@@ -126,13 +113,11 @@ def classof(lines,a,wtol,kk):#cal domain class of terms using lsa
     return vec.argmax()
 
 def classof2(lines,a,s,wtol,kk):#cal domain class of terms using lda
-    if len(lines) < 1:
-        return -1
     vec = 1
     for line in lines:
         line = line.strip('\n')
         if line in wtol:
-            vec = vec * a[:,wtol[line]] * 62300
+            vec = vec * a[:,wtol[line]]
     vec = vec * s
     return vec.argmax()
 
@@ -188,22 +173,6 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
     ttmmpp = list(tmp)
     del tmp
     for tcl in cll[cl]:
-	rr =  set()
-        qtem = []
-	#qlen = abs(len(w)+np.random.normal(0,2,1)) #random querry length
-	qlen = len(w)
-
-	if zipf < 0 and type == 3:
-	    while len(rr) < qlen:
-                dp = crand.randfunc(a[int(tcl)])
-                if dp not in rr:
-                    rr.add(dp)
-                    qtem.append(ltow[int(dp)])
-                else:
-                    continue
-            result.append(list(qtem))
-            continue
-
         if type == 0 or type == 1:
             clf = clpath+'/'+tcl[0]+'/'+tcl+'.txt.fq.tfidfn'
             if type == 1:
@@ -214,6 +183,10 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
 	tmp = fcl.readlines()[0:10000]
 	fcl.close()
 
+	rr =  set()
+        qtem = []
+	#qlen = abs(len(w)+np.random.normal(0,2,1)) #random querry length
+	qlen = len(w)
         if zipf <= 1:
             for i in w:
 		if i < len(tmp):
@@ -231,13 +204,9 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
     for i in w:
 	tw = ttmmpp[i].strip('\n')
 	qtem.append(tw)
-	#t = t + tw + ' '
+	t = t + tw + ' '
     result.append(list(qtem))
-    #result.append(t)
-    x = [0,1,2,3]
-    random.shuffle(x)
-    result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(t)
     return result
 
 
@@ -303,22 +272,13 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
                 beta = beta * 2
             rr =  set()
             qtem = []
-            if zipf < 0 and type == 3:
-                while len(rr) < qlen:
-                    dp = crand.randfunc(a[int(tcl)])
-                    if dp not in rr:
-                        rr.add(dp)
-                        qtem.append(ltow[int(dp)])
-                    else:
-                        continue
-            else:
-                while len(rr) < qlen:
-                    dp = int(np.random.zipf(zipf,1))
-                    if dp < len(tmp) and dp not in rr:
-                        rr.add(dp)
-                        qtem.append(tmp[int(dp)].strip('\n'))
-                    else:
-                        continue
+            while len(rr) < qlen:
+                dp = int(np.random.zipf(zipf,1))
+                if dp < len(tmp) and dp not in rr:
+                    rr.add(dp)
+                    qtem.append(tmp[int(dp)].strip('\n'))
+                else:
+                    continue
             stm = simcheck(vecof0(qtem,a,s,wtol,kk),P)
             #print it,rd,stm
             if  abs(stm - rd) < beta * 0.5:
@@ -328,99 +288,7 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
     for i in w:
 	tw = ttmmpp[i].strip('\n')
 	qtem.append(tw)
-	#t = t + tw + ' '
+	t = t + tw + ' '
     result.append(list(qtem))
-    #result.append(t)
-    x = [0,1,2,3]
-    random.shuffle(x)
-    result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
-
-    return result
-
-def dg3(filename,cll,a = None,s = None,p = None,wtol = None,ltow = None,kk = None):
-#dummpy query generation using lda
-    fin  = open(filename+'.txt','r')
-    lines = fin.readlines()
-    fin.close()
-    cl = classof2(lines,a,s,wtol,kk)
-
-    w = []
-    result = []
-    if cl not in cll:
-        return None
-    for tcl in cll[cl]:
-	#qlen = abs(len(w)+np.random.normal(0,2,1)) #random querry length
-        qtem = []
-	qlen = len(lines)
-        while classof2(qtem,a,s,wtol,kk) != int(tcl):
-            rr =  set()
-            qtem = []
-            while len(rr) < qlen:
-                dp = crand.randfunc2(p[int(tcl)])
-                if dp not in rr:
-                    rr.add(dp)
-                    qtem.append(ltow[int(dp)])
-                else:
-                    continue
-            #print len(qtem),classof2(qtem,a,s,wtol,kk) , int(tcl)
-        result.append(list(qtem))
-    qtem = []
-    for line in lines:
-	qtem.append(line.strip('\n'))
-    result.append(list(qtem))
-    x = [0,1,2,3]
-    random.shuffle(x)
-    result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
-    return result
-
-
-def dg4(filename,cll,clpath,a = None,s = None,p = None,wtol = None,ltow = None,kk = None,P = None):
-#dummpy query generation using tfidf
-#type:0 tfidf/1 tfidf2/2 lsa/3 lda
-#s for lda only
-    fin  = open(filename+'.txt','r')
-    lines = fin.readlines()
-    fin.close()
-    cl = classof0(lines,a,s,wtol,kk)
-
-    rd = simcheck(vecof0(lines,a,s,wtol,kk),P)
-    rd = abs(rd + alpha * (np.random.random_sample() - 0.5))
-    result = []
-    if cl not in cll:
-        return None
-    for tcl in cll[cl]:
-        beta = alpha
-	qlen = len(lines)
-        sc = False
-        it = 0 
-        while sc == False:
-            it = it + 1
-            if it > 1000:
-                it = 1
-                beta = beta * 2
-            rr =  set()
-            qtem = []
-            while classof2(qtem,a,s,wtol,kk) != int(tcl):
-                while len(rr) < qlen:
-                    dp = crand.randfunc(a[int(tcl)])
-                    if dp not in rr:
-                        rr.add(dp)
-                        qtem.append(ltow[int(dp)])
-                    else:
-                        continue
-            stm = simcheck(vecof0(qtem,a,s,wtol,kk),P)
-            if  abs(stm - rd) < beta * 0.5:
-                sc = True
-        result.append(list(qtem))
-    qtem = []
-    for line in lines:
-	qtem.append(line.strip('\n'))
-    result.append(list(qtem))
-    x = [0,1,2,3]
-    random.shuffle(x)
-    result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
-
+    result.append(t)
     return result
