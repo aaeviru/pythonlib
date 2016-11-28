@@ -1,8 +1,8 @@
 # pythonlib
 
-semantic.py:lsa,lda
-sysf.py:input,output control
-crand.py:rand func
+semantic.py:lsa,lda  
+sysf.py:input,output control  
+crand.py:rand func  
 
 ------------------------
 getapy:geta API
