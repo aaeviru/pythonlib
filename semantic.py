@@ -20,7 +20,7 @@ classname = '/home/ec2-user/git/tfidf/result/classname.txt'#literate classname
 #    i = i + 1
 #fldawl.close()
 
-alpha = 0.1 #parameter for rd
+alpha = 0.01 #parameter for rd
 
 def vecof0(lines,a,s,wtol,kk):
     if s == None:
@@ -145,14 +145,14 @@ def simcheck(q,P):
             d = tmpd
     return d
 
-def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,type = 0):
+def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,stype = 0):
 #dummpy query generation using tfidf
-#type:0 tfidf/1 tfidf2/2 lsa/3 lda
+#stype:0 tfidf/1 tfidf2/2 lsa/3 lda
 #s for lda only
     fin  = open(filename+'.txt','r')
     lines = fin.readlines()
     fin.close()
-    if type == 0 or type == 1:#tfidf
+    if stype == 0 or stype == 1:#tfidf
         fin = open(filename,'r')
         temp = fin.read()
         fin.close()
@@ -163,9 +163,9 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
         cl = cl[0]
         cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
 	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-	if type == 1:#tfidf2
+	if stype == 1:#tfidf2
 	    clf = clf + '2'
-    elif type == 2 or type == 3:#lsa,lda
+    elif stype == 2 or stype == 3:#lsa,lda
         cl = classof0(lines,a,s,wtol,kk)
 	clf = clpath+'/'+str(cl)
 
@@ -193,7 +193,7 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
 	#qlen = abs(len(w)+np.random.normal(0,2,1)) #random querry length
 	qlen = len(w)
 
-	if zipf < 0 and type == 3:
+	if type(zipf) == float and zipf < 0 and stype == 3:
 	    while len(rr) < qlen:
                 dp = crand.randfunc(a[int(tcl)])
                 if dp not in rr:
@@ -204,23 +204,24 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
             result.append(list(qtem))
             continue
 
-        if type == 0 or type == 1:
+        if stype == 0 or stype == 1:
             clf = clpath+'/'+tcl[0]+'/'+tcl+'.txt.fq.tfidfn'
-            if type == 1:
+            if stype == 1:
                 clf = clf + '2'
-        if type == 2 or type == 3:
+        if stype == 2 or stype == 3:
             clf = clpath+'/'+str(tcl)
 	fcl = open(clf,'r')
 	tmp = fcl.readlines()[0:10000]
 	fcl.close()
 
-        if zipf <= 1:
+        if type(zipf) == float and zipf <= 1:
             for i in w:
 		if i < len(tmp):
 		    qtem.append(tmp[i].strip('\n'))
 	else:
 	    while len(rr) < qlen:
-		dp = int(np.random.zipf(zipf,1))
+		#dp = int(np.random.zipf(zipf,1))
+                dp = crand.randfunc2(zipf)
 		if dp < len(tmp) and dp not in rr:
 		    rr.add(dp)
 		    qtem.append(tmp[int(dp)].strip('\n'))
@@ -241,14 +242,14 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,t
     return result
 
 
-def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,P = None,type = 0):
+def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,P = None,stype = 0):
 #dummpy query generation using tfidf
-#type:0 tfidf/1 tfidf2/2 lsa/3 lda
+#stype:0 tfidf/1 tfidf2/2 lsa/3 lda
 #s for lda only
     fin  = open(filename+'.txt','r')
     lines = fin.readlines()
     fin.close()
-    if type == 0 or type == 1:#tfidf
+    if stype == 0 or stype == 1:#tfidf
         fin = open(filename,'r')
         temp = fin.read()
         fin.close()
@@ -259,9 +260,9 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
         cl = cl[0]
         cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
 	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-	if type == 1:#tfidf2
+	if stype == 1:#tfidf2
 	    clf = clf + '2'
-    elif type == 2 or type == 3:#lsa,lda
+    elif stype == 2 or stype == 3:#lsa,lda
         cl = classof0(lines,a,s,wtol,kk)
 	clf = clpath+'/'+str(cl)
 
@@ -283,11 +284,11 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
     del tmp
     for tcl in cll[cl]:
         beta = alpha
-        if type == 0 or type == 1:
+        if stype == 0 or stype == 1:
             clf = clpath+'/'+tcl[0]+'/'+tcl+'.txt.fq.tfidfn'
-            if type == 1:
+            if stype == 1:
                 clf = clf + '2'
-        if type == 2 or type == 3:
+        if stype == 2 or stype == 3:
             clf = clpath+'/'+str(tcl)
 	fcl = open(clf,'r')
 	tmp = fcl.readlines()[0:10000]
@@ -303,7 +304,7 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
                 beta = beta * 2
             rr =  set()
             qtem = []
-            if zipf < 0 and type == 3:
+            if type(zipf) == float and zipf < 0 and stype == 3:
                 while len(rr) < qlen:
                     dp = crand.randfunc(a[int(tcl)])
                     if dp not in rr:
@@ -313,7 +314,8 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
                         continue
             else:
                 while len(rr) < qlen:
-                    dp = int(np.random.zipf(zipf,1))
+                    #dp = int(np.random.zipf(zipf,1))
+                    dp = crand.randfunc2(zipf)
                     if dp < len(tmp) and dp not in rr:
                         rr.add(dp)
                         qtem.append(tmp[int(dp)].strip('\n'))
@@ -378,7 +380,7 @@ def dg3(filename,cll,a = None,s = None,p = None,wtol = None,ltow = None,kk = Non
 
 def dg4(filename,cll,clpath,a = None,s = None,p = None,wtol = None,ltow = None,kk = None,P = None):
 #dummpy query generation using tfidf
-#type:0 tfidf/1 tfidf2/2 lsa/3 lda
+#stype:0 tfidf/1 tfidf2/2 lsa/3 lda
 #s for lda only
     fin  = open(filename+'.txt','r')
     lines = fin.readlines()
