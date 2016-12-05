@@ -67,6 +67,40 @@ def readwl(wlpath):#read word-lsanum matrix
     fwl.close()
     return wtol
 
+def readcll0(cllfile,kk,stype):
+    if cllfile == 'rand':
+        cll = {}
+        if stype in (0,1):
+            fcl = open('/home/ec2-user/git/tfidf/result/classname.txt','r')
+            acl = []
+            for line in fcl:
+                line = line.strip(' \n')
+                line = line.split(' ')
+                for w in line:
+                    acl.append(w)
+            for i in range(0,623):
+                tmpc = []
+                for j in range(3):
+                    tmpc.append(acl[np.random.randint(623)])
+                cll[acl[i]] = list(tmpc)
+        elif stype in (2,3):
+            for i in range(0,kk):
+                cll[i] = np.random.randint(kk,size=3)
+
+    else:
+        fcl = open(cllfile,'r')
+        cll = {}
+        for line in fcl:
+            line = line.strip(' \n')
+            line = line.split(' ')
+            for w in line:
+                ww = int(w)
+                cll[ww] = list(line)
+                cll[ww].remove(w)
+        fcl.close()
+    return cll
+
+
 def readcll(cllfile):
     cll = {}
     if cllfile == 'rand':
@@ -425,4 +459,71 @@ def dg4(filename,cll,clpath,a = None,s = None,p = None,wtol = None,ltow = None,k
     result = list(np.array(result)[x])
     result.append(str(x.index(3)))
 
+    return result
+
+def dg5(filename,clpath,a = None,s = None,wtol = None,kk = None,stype = 0):
+#dummpy query generation using tfidf
+#stype:0 tfidf/1 tfidf2/2 lsa/3 lda
+    fin  = open(filename+'.txt','r')
+    lines = fin.readlines()
+    fin.close()
+    if stype == 0 or stype == 1:#tfidf
+        fin = open(filename,'r')
+        temp = fin.read()
+        fin.close()
+        cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
+        if(len(cl) < 1):
+            print 'cl<1:',filename
+            return None
+        cl = cl[0]
+        cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
+	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
+	if stype == 1:#tfidf2
+	    clf = clf + '2'
+    elif stype == 2 or stype == 3:#lsa,lda
+        cl = classof0(lines,a,s,wtol,kk)
+	clf = clpath+'/'+str(cl)
+
+    w = []
+    fcl = open(clf,'r')
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+	if line in tmp[0:10000]:
+	    w.append(tmp.index(line))
+    r = []
+    t = '!'
+    result = []
+    ttmmpp = list(tmp)
+    del tmp
+    for ii in range(4):
+	rr =  set()
+        qtem = []
+	qlen = len(w)
+        if stype == 0 or stype == 1:
+            clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
+            if stype == 1:
+                clf = clf + '2'
+        if stype == 2 or stype == 3:
+            clf = clpath+'/'+str(cl)
+	fcl = open(clf,'r')
+	tmp = fcl.readlines()[0:10000]
+	fcl.close()
+        
+        for i in w:
+            dp = i + random.randint(-2,2)
+            while dp > len(tmp) or dp in rr:
+                dp = i + random.randint(-2,2)
+            rr.add(dp)
+            qtem.append(tmp[int(dp)].strip('\n'))
+        result.append(list(qtem))
+    qtem = []
+    for i in w:
+	tw = ttmmpp[i].strip('\n')
+	qtem.append(tw)
+    result.append(list(qtem))
+    x = [0,1,2,3]
+    random.shuffle(x)
+    result = list(np.array(result)[x])
+    result.append(str(x.index(3)))
     return result
