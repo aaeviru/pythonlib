@@ -11,6 +11,7 @@ from scipy import spatial
 import crand
 
 classname = '/home/ec2-user/git/tfidf/result/classname.txt'#literate classname
+wordnet_wordlist = '/home/ec2-user/git/statresult/wordnet_wordlist.txt'#wordlist for wordnet
 #fldawl = open('/home/ec2-user/git/statresult/wordslist_top10000_dsw.txt','r')#wordlist for lda
 #i = 0
 #ltow = {}
@@ -46,14 +47,25 @@ def vecof2(lines,idf,a,wtol,kk):#cal lsa topic-vec of weighted(tfidf) terms
             vec = vec + a[:,wtol[line[1]]] * idf[line[1]] * int(line[0])
     return vec/np.linalg.norm(vec)
 
-def vecof3(lines,a,s,wtol,kk):#cal lda topic-vec of weighted(tfidf) terms
+def vecof3(lines,a,s,wtol,kk):#cal lda topic-vec
     vec = 1
     for line in lines:
         line = line.strip('\n')
         if line in wtol:
-            vec = vec * a[:,wtol[line]] * 62300
-    vec = vec * s * 100000
-    return vec
+            vec = vec * 1000.0 * a[:,wtol[line]] 
+            vec = vec/vec.sum()
+    vec = vec * 100000 * s
+    return vec*10000/vec.sum()
+
+def prq(lines,a,s,wtol,kk):#cal lda topic-vec
+    vec = 1
+    for line in lines:
+        line = line.strip('\n')
+        if line in wtol:
+            vec = vec * 1000.0 * a[:,wtol[line]] 
+    vec = vec * s
+    return vec.sum()
+
 
 def readwl(wlpath):#read word-lsanum matrix
     fwl = open(wlpath,"r")
@@ -68,28 +80,22 @@ def readwl(wlpath):#read word-lsanum matrix
     return wtol
 
 def readcll0(cllfile,kk,stype):
-    if cllfile == 'rand':
-        cll = {}
-        if stype in (0,1):
-            fcl = open('/home/ec2-user/git/tfidf/result/classname.txt','r')
-            acl = []
-            for line in fcl:
-                line = line.strip(' \n')
-                line = line.split(' ')
-                for w in line:
-                    acl.append(w)
-            for i in range(0,623):
-                tmpc = []
-                for j in range(3):
-                    tmpc.append(acl[np.random.randint(623)])
-                cll[acl[i]] = list(tmpc)
-        elif stype in (2,3):
-            for i in range(0,kk):
-                cll[i] = np.random.randint(kk,size=3)
+    if stype in (2,3):
+        return readcll(cllfile,kk)
+    else:
+        return readcll2(cllfile,kk)
 
+def readcll(cllfile,kk):
+    cll = {}
+    if cllfile[0:4] == 'rand':
+        if len(cllfile) > 4:
+            dummylen = int(cllfile[4:])
+        else:
+            dummylen = 3
+        for i in range(0,kk):
+            cll[i] = np.random.randint(kk,size=dummylen)
     else:
         fcl = open(cllfile,'r')
-        cll = {}
         for line in fcl:
             line = line.strip(' \n')
             line = line.split(' ')
@@ -100,26 +106,13 @@ def readcll0(cllfile,kk,stype):
         fcl.close()
     return cll
 
-
-def readcll(cllfile):
+def readcll2(cllfile,kk):
     cll = {}
-    if cllfile == 'rand':
-        for i in range(0,kk):
-            cll[i] = np.random.randint(kk,size=3)
-    else:
-        fcl = open(cllfile,'r')
-        for line in fcl:
-            line = line.strip(' \n')
-            line = line.split(' ')
-            for w in line:
-                ww = int(w)
-                cll[ww] = list(line)
-                cll[ww].remove(w)
-        fcl.close()
-
-def readcll2(cllfile):
-    cll = {}
-    if cllfile == 'rand':
+    if cllfile[0:4] == 'rand':
+        if len(cllfile) > 4:
+            dummylen = int(cllfile[4:])
+        else:
+            dummylen = 3
 	fcl = open(classname,'r')
 	acl = []
 	for line in fcl:
@@ -129,7 +122,7 @@ def readcll2(cllfile):
 		acl.append(w)
 	for i in range(0,623):
 	    tmpc = []
-	    for j in range(3):
+	    for j in range(dummylen):
 		tmpc.append(acl[np.random.randint(623)])
 	    cll[acl[i]] = list(tmpc)
     else:
@@ -170,6 +163,21 @@ def classof2(lines,a,s,wtol,kk):#cal domain class of terms using lda
     vec = vec * s
     return vec.argmax()
 
+def classoft(filename,clpath,stype):
+    fin = open(filename,'r')
+    temp = fin.read()
+    fin.close()
+    cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
+    if(len(cl) < 1):
+        print 'cl<1:',filename
+        return None
+    cl = cl[0]
+    cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
+    clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
+    if stype == 1:#tfidf2
+        clf = clf + '2'
+    return (cl,clf)
+
 def simcheck(q,P):
     d = 2
     for p in P:
@@ -187,18 +195,7 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,s
     lines = fin.readlines()
     fin.close()
     if stype == 0 or stype == 1:#tfidf
-        fin = open(filename,'r')
-        temp = fin.read()
-        fin.close()
-        cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
-        if(len(cl) < 1):
-            print 'cl<1:',filename
-            return None
-        cl = cl[0]
-        cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
-	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-	if stype == 1:#tfidf2
-	    clf = clf + '2'
+        cl,clf = classoft(filename,clpath,stype)
     elif stype == 2 or stype == 3:#lsa,lda
         cl = classof0(lines,a,s,wtol,kk)
 	clf = clpath+'/'+str(cl)
@@ -218,7 +215,12 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,s
     #std = rq.std()
     #print mean,std
     if cl not in cll:
-        return None
+        cl = cl[:-1]
+        if cl not in cll:
+            cl = cl[0]
+            if cl not in cll:
+                return None
+
     ttmmpp = list(tmp)
     del tmp
     for tcl in cll[cl]:
@@ -254,8 +256,8 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,s
 		    qtem.append(tmp[i].strip('\n'))
 	else:
 	    while len(rr) < qlen:
-		#dp = int(np.random.zipf(zipf,1))
-                dp = crand.randfunc2(zipf)
+		dp = int(np.random.zipf(zipf,1))
+                #dp = crand.randfunc2(zipf)
 		if dp < len(tmp) and dp not in rr:
 		    rr.add(dp)
 		    qtem.append(tmp[int(dp)].strip('\n'))
@@ -268,11 +270,10 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,s
 	qtem.append(tw)
 	#t = t + tw + ' '
     result.append(list(qtem))
-    #result.append(t)
-    x = [0,1,2,3]
+    x = range(len(result))
     random.shuffle(x)
     result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(str(x.index(len(result)-1)))
     return result
 
 
@@ -284,18 +285,7 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
     lines = fin.readlines()
     fin.close()
     if stype == 0 or stype == 1:#tfidf
-        fin = open(filename,'r')
-        temp = fin.read()
-        fin.close()
-        cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
-        if(len(cl) < 1):
-            print 'cl<1:',filename
-            return None
-        cl = cl[0]
-        cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
-	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-	if stype == 1:#tfidf2
-	    clf = clf + '2'
+        cl,clf = classoft(filename,clpath,stype)
     elif stype == 2 or stype == 3:#lsa,lda
         cl = classof0(lines,a,s,wtol,kk)
 	clf = clpath+'/'+str(cl)
@@ -348,8 +338,8 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
                         continue
             else:
                 while len(rr) < qlen:
-                    #dp = int(np.random.zipf(zipf,1))
-                    dp = crand.randfunc2(zipf)
+                    dp = int(np.random.zipf(zipf,1))
+                    #dp = crand.randfunc2(zipf)
                     if dp < len(tmp) and dp not in rr:
                         rr.add(dp)
                         qtem.append(tmp[int(dp)].strip('\n'))
@@ -367,10 +357,10 @@ def dg2(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,
 	#t = t + tw + ' '
     result.append(list(qtem))
     #result.append(t)
-    x = [0,1,2,3]
+    x = range(len(result))
     random.shuffle(x)
     result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(str(x.index(len(result)-1)))
 
     return result
 
@@ -405,10 +395,10 @@ def dg3(filename,cll,a = None,s = None,p = None,wtol = None,ltow = None,kk = Non
     for line in lines:
 	qtem.append(line.strip('\n'))
     result.append(list(qtem))
-    x = [0,1,2,3]
+    x = range(len(result))
     random.shuffle(x)
     result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(str(x.index(len(result)-1)))
     return result
 
 
@@ -454,35 +444,31 @@ def dg4(filename,cll,clpath,a = None,s = None,p = None,wtol = None,ltow = None,k
     for line in lines:
 	qtem.append(line.strip('\n'))
     result.append(list(qtem))
-    x = [0,1,2,3]
+    x = range(len(result))
     random.shuffle(x)
     result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(str(x.index(len(result)-1)))
 
     return result
 
-def dg5(filename,clpath,a = None,s = None,wtol = None,kk = None,stype = 0):
+def dg5(filename,clpath,cl = None,clf = None,dummylen = 3,a = None,s = None,wtol = None,kk = None,stype = 0,dtype = 1):
 #dummpy query generation using tfidf
 #stype:0 tfidf/1 tfidf2/2 lsa/3 lda
-    fin  = open(filename+'.txt','r')
-    lines = fin.readlines()
-    fin.close()
-    if stype == 0 or stype == 1:#tfidf
-        fin = open(filename,'r')
-        temp = fin.read()
+    if type(filename) == str:
+        fin  = open(filename+'.txt','r')
+        lines = fin.readlines()
         fin.close()
-        cl = re.findall(r'【国際特許分類第.*版】.*?([A-H][0-9]+?[A-Z])',temp,re.DOTALL)
-        if(len(cl) < 1):
-            print 'cl<1:',filename
-            return None
-        cl = cl[0]
-        cl = cl[0] + str(int(cl[1:len(cl)-1])) +cl[len(cl)-1]
-	clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-	if stype == 1:#tfidf2
-	    clf = clf + '2'
-    elif stype == 2 or stype == 3:#lsa,lda
-        cl = classof0(lines,a,s,wtol,kk)
-	clf = clpath+'/'+str(cl)
+    elif type(filename) == list:
+        lines = filename
+    else:
+        return None
+
+    if cl == None and clf == None:
+        if stype == 0 or stype == 1:#tfidf
+            cl,clf = classoft(filename,clpath,stype)
+        elif stype == 2 or stype == 3:#lsa,lda
+            cl = classof0(lines,a,s,wtol,kk)
+            clf = clpath+'/'+str(cl)
 
     w = []
     fcl = open(clf,'r')
@@ -491,39 +477,96 @@ def dg5(filename,clpath,a = None,s = None,wtol = None,kk = None,stype = 0):
     for line in lines:
 	if line in tmp[0:10000]:
 	    w.append(tmp.index(line))
+    w = sorted(w)
     r = []
     t = '!'
     result = []
-    ttmmpp = list(tmp)
-    del tmp
-    for ii in range(4):
+    for ii in range(dummylen):
 	rr =  set()
         qtem = []
 	qlen = len(w)
-        if stype == 0 or stype == 1:
-            clf = clpath+'/'+cl[0]+'/'+cl+'.txt.fq.tfidfn'
-            if stype == 1:
-                clf = clf + '2'
-        if stype == 2 or stype == 3:
-            clf = clpath+'/'+str(cl)
-	fcl = open(clf,'r')
-	tmp = fcl.readlines()[0:10000]
-	fcl.close()
-        
-        for i in w:
-            dp = i + random.randint(-2,2)
-            while dp > len(tmp) or dp in rr:
-                dp = i + random.randint(-2,2)
-            rr.add(dp)
-            qtem.append(tmp[int(dp)].strip('\n'))
+        if dtype > 1:
+            for i in w:
+		if i < len(tmp):
+		    qtem.append(tmp[i].strip('\n'))
+        else:    
+            for i in w:
+                dp = i + random.randint(-1 * dummylen,dummylen)
+                while dp < 0 or dp > len(tmp) or dp in rr:
+                    #print 'w:',w
+                    #print dp
+                    dp = i + random.randint(-1 * dummylen,dummylen)
+                rr.add(dp)
+                qtem.append(tmp[int(dp)].strip('\n'))
         result.append(list(qtem))
     qtem = []
     for i in w:
-	tw = ttmmpp[i].strip('\n')
+	tw = tmp[i].strip('\n')
 	qtem.append(tw)
     result.append(list(qtem))
-    x = [0,1,2,3]
+    x = range(len(result))
     random.shuffle(x)
     result = list(np.array(result)[x])
-    result.append(str(x.index(3)))
+    result.append(str(x.index(dummylen)))
     return result
+
+def dg6(filename,clpath,cl = None,clf = None,ti = None,dummylen = 3,a = None,s = None,wtol = None,kk = None,stype = 0,dtype = 1):
+    if type(filename) == str:
+        fin  = open(filename+'.txt','r')
+        lines = fin.readlines()
+        fin.close()
+    elif type(filename) == list:
+        lines = filename
+    else:
+        return None
+
+    if cl == None and clf == None:
+        if stype == 0 or stype == 1:#tfidf
+            cl,clf = classoft(filename,clpath,stype)
+        elif stype == 2 or stype == 3:#lsa,lda
+            cl = classof0(lines,a,s,wtol,kk)
+            clf = clpath+'/'+str(cl)
+
+    w = []
+    fcl = open(clf,'r')
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+	if line in tmp[0:10000]:
+	    w.append(tmp.index(line))
+    w = sorted(w)
+    r = []
+    t = '!'
+    result = []
+    for ii in range(dummylen):
+	rr =  set()
+        qtem = []
+	qlen = len(w)
+        if dtype > 1:
+            for i in w:
+		if i < len(tmp):
+		    qtem.append(tmp[i].strip('\n'))
+        else:    
+            for i in w:
+                if tmp[i].strip('\n') in ti:
+                    dp = i
+                else:
+                    dp = i + random.randint(-1 * dummylen,dummylen)
+                    while dp < 0 or dp == i or dp > len(tmp) or dp in rr:
+                        #print 'w:',w
+                        #print dp
+                        dp = i + random.randint(-1 * dummylen,dummylen)
+                rr.add(dp)
+                qtem.append(tmp[int(dp)].strip('\n'))
+        result.append(list(qtem))
+    qtem = []
+    for i in w:
+	tw = tmp[i].strip('\n')
+	qtem.append(tw)
+    result.append(list(qtem))
+    x = range(len(result))
+    random.shuffle(x)
+    result = list(np.array(result)[x])
+    result.append(str(x.index(dummylen)))
+    return result
+

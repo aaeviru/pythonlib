@@ -14,5 +14,10 @@ def simatt(q,Pu,alpha = 0.5):
         cc[i] = alpha * cc[i] + (1-alpha) * cc[i-1]
     return cc[-1]
     
+def sis(q,Pu):
+    cc = set()
+    for p in Pu:
+        cc = cc.union([val for val in p if val in q])
+    return cc
 
     

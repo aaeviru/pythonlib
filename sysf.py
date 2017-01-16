@@ -18,6 +18,7 @@ def logger(outf,inputform):
 
     current_time_in_utc = datetime.utcnow()
     print current_time_in_utc + timedelta(hours=9)
+    print
     inputform = inputform.split(',')
     for i in range(1,len(sys.argv)):
 	print inputform[i-1]+':'+sys.argv[i]
@@ -25,4 +26,6 @@ def logger(outf,inputform):
     sys.stdout.flush()
     return fout
 
-
+def pend():
+    print
+    print datetime.utcnow() + timedelta(hours=9)
