@@ -452,8 +452,6 @@ def dg4(filename,cll,clpath,a = None,s = None,p = None,wtol = None,ltow = None,k
     return result
 
 def dg5(filename,clpath,cl = None,clf = None,dummylen = 3,a = None,s = None,wtol = None,kk = None,stype = 0,dtype = 1):
-#dummpy query generation using tfidf
-#stype:0 tfidf/1 tfidf2/2 lsa/3 lda
     if type(filename) == str:
         fin  = open(filename+'.txt','r')
         lines = fin.readlines()
@@ -491,11 +489,11 @@ def dg5(filename,clpath,cl = None,clf = None,dummylen = 3,a = None,s = None,wtol
 		    qtem.append(tmp[i].strip('\n'))
         else:    
             for i in w:
-                dp = i + random.randint(-1 * dummylen,dummylen)
+                dp = i + random.randint(-1 * 2,2)
                 while dp < 0 or dp > len(tmp) or dp in rr:
                     #print 'w:',w
                     #print dp
-                    dp = i + random.randint(-1 * dummylen,dummylen)
+                    dp = i + random.randint(-1 * 2,2)
                 rr.add(dp)
                 qtem.append(tmp[int(dp)].strip('\n'))
         result.append(list(qtem))
@@ -570,3 +568,59 @@ def dg6(filename,clpath,cl = None,clf = None,ti = None,dummylen = 3,a = None,s =
     result.append(str(x.index(dummylen)))
     return result
 
+def dg7(filename,clpath,cl = None,clf = None,dummylen = 3,a = None,s = None,wtol = None,kk = None,stype = 0,dtype = 1):
+    if type(filename) == str:
+        fin  = open(filename+'.txt','r')
+        lines = fin.readlines()
+        fin.close()
+    elif type(filename) == list:
+        lines = filename
+    else:
+        return None
+
+    if cl == None and clf == None:
+        if stype == 0 or stype == 1:#tfidf
+            cl,clf = classoft(filename,clpath,stype)
+        elif stype == 2 or stype == 3:#lsa,lda
+            cl = classof0(lines,a,s,wtol,kk)
+            clf = clpath+'/'+str(cl)
+
+    w = []
+    fcl = open(clf,'r')
+    tmp = fcl.readlines()
+    fcl.close()
+    for line in lines:
+	if line in tmp[0:10000]:
+	    w.append(tmp.index(line))
+    w = sorted(w)
+    r = []
+    t = '!'
+    result = []
+    offset = random.randint(-1 * dummylen/2,dummylen/2)
+    for ii in range(dummylen+1):
+	rr =  set()
+        qtem = []
+	qlen = len(w)
+        if dtype > 1:
+            for i in w:
+		if i < len(tmp):
+		    qtem.append(tmp[i].strip('\n'))
+        else:    
+            if offset + ii - dummylen/2 == 0:
+                continue
+            for i in w:
+                dp = i + offset + ii - dummylen/2
+                if dp < 0:
+                    dp == 0
+                qtem.append(tmp[int(dp)].strip('\n'))
+        result.append(list(qtem))
+    qtem = []
+    for i in w:
+	tw = tmp[i].strip('\n')
+	qtem.append(tw)
+    result.append(list(qtem))
+    x = range(len(result))
+    random.shuffle(x)
+    result = list(np.array(result)[x])
+    result.append(str(x.index(dummylen)))
+    return result
