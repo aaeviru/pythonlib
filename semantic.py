@@ -207,6 +207,8 @@ def dg(filename,cll,clpath,a = None,s = None,wtol = None,kk = None,zipf = 1.03,s
     for line in lines:
 	if line in tmp[0:10000]:
 	    w.append(tmp.index(line))
+        else:
+            print tmp.index(line)
     r = []
     t = '!'
     result = []
